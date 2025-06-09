@@ -1,7 +1,7 @@
 package cn.edu.xaut.quanyou.common;
 
 public enum ErrorCode {
-    SUCCESS(0, "ok", ""),
+    SUCCESS(0, "ok", "操作成功"),
     PARAMS_ERROR(40000, "请求参数错误", ""),
     NULL_ERROR(40001, "请求数据为空", ""),
     NOT_LOGIN(40100, "未登录", ""),

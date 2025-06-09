@@ -24,7 +24,7 @@ import static cn.edu.xaut.quanyou.Contant.UserContant.USER_LOGIN_STATE;
 //@Api(tags = "测试模块")
 @RestController
 @RequestMapping("/user")
-@CrossOrigin
+@CrossOrigin(origins = {"http://localhost:3000"})
 public class UserController {
 
     @Resource
@@ -71,13 +71,8 @@ public class UserController {
      @GetMapping("/current")
      public BaseResponse<User> getCurrentUser(HttpServletRequest request)
      {
-         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-         User currentUser = (User) userObj;
-         if(currentUser==null){
-             throw  new BuessisException(ErrorCode.NOT_LOGIN);
-         }
-         long userId = currentUser.getId();
-         // TODO 校验用户是否合法
+         User loginuser = userService.getloginuser(request);
+         long userId =loginuser.getId();
          User user = userService.getById(userId);
          User safetyUser = userService.getSafetyUser(user);
          return ResultUntil.success(safetyUser);
@@ -85,7 +80,8 @@ public class UserController {
 
     @GetMapping("/search")
     public BaseResponse<List<User>>searchUser(String userAccount, HttpServletRequest request)
-    {   if(!isAdmin(request))
+    {
+        if(!userService.isAdmin(request)&&userService.getloginuser(request)==null)
      {
          throw  new BuessisException(ErrorCode.NO_AUTH,"缺少管理员权限");
        }
@@ -98,10 +94,19 @@ public class UserController {
             throw new BuessisException(ErrorCode.PARAMS_ERROR);
         return ResultUntil.success(userService.searchUsersByTags(tagNameList));
     }
+    @PostMapping("/update")
+    public BaseResponse<Integer> updateUser(@RequestBody User user,HttpServletRequest request){
+        if(user==null) {
+            throw new BuessisException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getloginuser(request);
+        int result = userService.updateUser(user,loginUser);
+            return ResultUntil.success(result);
+        }
     @PostMapping  ("/delete")
     public BaseResponse<Boolean> delete(long id, HttpServletRequest request)
     {
-        if(!isAdmin(request))
+        if(!userService.isAdmin(request))
         {
             throw  new BuessisException(ErrorCode.NO_AUTH,"缺少管理员权限");
         }
@@ -119,12 +124,5 @@ public class UserController {
          int result = userService.userLogout(request);
          return ResultUntil.success(result);
      }
-    public boolean isAdmin(HttpServletRequest request)
-    {
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User currentUser = (User) userObj;
-        if(currentUser == null || currentUser.getUserRole() != ADMIN_ROLE)
-            return false;
-        return true;
-    }
+
 }

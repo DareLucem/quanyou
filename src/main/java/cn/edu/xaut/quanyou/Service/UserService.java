@@ -46,7 +46,44 @@ public interface UserService extends IService<User> {
      */
     User getSafetyUser(User OriginUser);
 
+  /**
+   * 登出账号
+   * @param request
+   * @return
+   */
     int userLogout(HttpServletRequest request);
 
+  /**
+   * 通过标签搜索用户
+   * @param tagNameList
+   * @return
+   */
   List<User> searchUsersByTags(List<String> tagNameList);
+
+  /**
+   * 修改个人用户 信息
+   * @param user
+   * @param loginuser
+   * @return
+   */
+  int updateUser(User user, User loginuser);
+/**
+   * 是否为管理员
+   * @param request
+   * @return
+   */
+  boolean isAdmin(HttpServletRequest request);
+  /**
+   * 获取当前登录用户
+   * @param request
+   * @return
+   */
+  User getloginuser(HttpServletRequest request);
+
+  /**
+   * 用户信息检测
+   * @param userAccount
+   * @param userPassword
+   */
+  void  correctAccountAndPassword(String userAccount, String userPassword);
 }
