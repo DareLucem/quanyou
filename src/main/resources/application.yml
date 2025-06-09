@@ -7,21 +7,27 @@ server:
   port: 8080
   servlet:
     context-path: /api
-#  session:
-#    cookie:
-#     domain:
+  session:
+   cookie:
+     domain: localhost
 
 
-alibaba:
-  cloud:
-   oss:
-    endpoint:  https://oss-cn-hangzhou.aliyuncs.com
+aliyun:
+  oss:
+    accessKeyId: #密钥
+    accessKeySecret: #密钥
+    bucketName: springlearningcyt-web-ts
+    endpoint: https://oss-cn-beijing.aliyuncs.com
 spring:
   application:
     name: quanyou
 #  profiles:
 #    active: div 使用sawgger配置类来防止接口泄露
   # DataSource Config
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/learning

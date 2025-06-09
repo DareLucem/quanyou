@@ -218,7 +218,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public int updateUser(User user,User loginUser) {
-      this.correctAccountAndPassword(user.getUserAccount(),user.getUserPassword());
       long updateuserid = user.getId();
       if(updateuserid <= 0) {
           throw new BuessisException(ErrorCode.PARAMS_ERROR);
@@ -230,9 +229,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
       if(oldUser == null) {
           throw new BuessisException(ErrorCode.NULL_ERROR, "用户不存在");
       }
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        String bcryptPassword= encoder.encode(user.getUserPassword());
-        user.setUserPassword(bcryptPassword);
+
         return userMapper.updateById(user);
 
 
@@ -261,6 +258,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if(StringUtils.isAnyBlank(userAccount,userPassword)){
             throw new BuessisException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
+
         if(userAccount.length()<4){
             throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户账号过短");
         }
@@ -273,6 +271,35 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户账号不合法");
 
         }
+    }
+
+    @Override
+    public long updatePassword(long id, String oldPassword, String newPassword) {
+        if(StringUtils.isAnyBlank(oldPassword,newPassword)){
+            throw new BuessisException(ErrorCode.NULL_ERROR, "参数为空");
+        }
+
+        if(newPassword.length()<8){
+            throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+        }
+        if(id<=0) {
+            throw new BuessisException(ErrorCode.PARAMS_ERROR, "参数错误");
+        }
+        User olduser=  this.getById(id);
+        if(olduser==null){
+            throw new BuessisException(ErrorCode.NULL_ERROR, "用户不存在");
+        }
+        if(olduser.getUserRole()!= ADMIN_ROLE && id != olduser.getId()) {
+            throw new BuessisException(ErrorCode.NO_AUTH, "没有权限");
+        }
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        if(encoder.matches(oldPassword,olduser.getUserPassword())==false){
+           throw new BuessisException(ErrorCode.PARAMS_ERROR, "旧密码错误");
+        }
+        String bcryptPassword = encoder.encode(newPassword);
+        olduser.setUserPassword(bcryptPassword);
+        userMapper.updateById(olduser);
+        return  olduser.getId();
     }
 }
 

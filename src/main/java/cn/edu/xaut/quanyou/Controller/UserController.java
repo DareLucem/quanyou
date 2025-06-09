@@ -2,20 +2,26 @@ package cn.edu.xaut.quanyou.Controller;
 
 import cn.edu.xaut.quanyou.DTO.UserLoginRequest;
 import cn.edu.xaut.quanyou.DTO.UserRegisterRequest;
+import cn.edu.xaut.quanyou.DTO.UserUpdatepswRequest;
 import cn.edu.xaut.quanyou.Exception.BuessisException;
 import cn.edu.xaut.quanyou.Model.User;
 import cn.edu.xaut.quanyou.Service.UserService;
+import cn.edu.xaut.quanyou.Untils.AliOSSUtils;
 import cn.edu.xaut.quanyou.common.BaseResponse;
 import cn.edu.xaut.quanyou.common.ErrorCode;
 import cn.edu.xaut.quanyou.common.ResultUntil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,11 +30,14 @@ import static cn.edu.xaut.quanyou.Contant.UserContant.USER_LOGIN_STATE;
 //@Api(tags = "测试模块")
 @RestController
 @RequestMapping("/user")
-@CrossOrigin(origins = {"http://localhost:3000"})
+@CrossOrigin(origins = {"http://localhost:3000"},allowCredentials = "true")
+@Slf4j
 public class UserController {
 
     @Resource
     private UserService userService;
+    @Autowired
+    AliOSSUtils aliOSSUtils;
 
     /**
      * 用户注册
@@ -116,6 +125,45 @@ public class UserController {
         boolean result = userService.removeById(id);
         return  ResultUntil.success(result);
     }
+    /**
+     * 上传头像
+     * @param file
+     * @param request
+     * @return
+     */
+    @PostMapping("/upload/avatar")
+    public  BaseResponse<String> uploadAvatar(@RequestParam("file") MultipartFile file,HttpServletRequest request) {
+        User loginUser = userService.getloginuser(request);
+        if (loginUser == null) {
+            throw new BuessisException(ErrorCode.NOT_LOGIN, "用户未登录");
+        }
+        String url= null;
+        try {
+            url = aliOSSUtils.upload(file);
+            log.info("上传成功，图片路径为{}",url);
+        } catch (IOException e) {
+            throw new BuessisException(ErrorCode.SYSTEM_ERROR,"上传失败");
+        }
+        if (url == null)
+            throw new BuessisException(ErrorCode.SYSTEM_ERROR,"上传失败");
+        return  ResultUntil.success(url);
+    }
+    @PostMapping  ("/updatePassword")
+    public BaseResponse<Long> updatePassword(@RequestBody UserUpdatepswRequest userUpdatepswRequest,HttpServletRequest request){
+        if(userUpdatepswRequest==null) {
+            throw new BuessisException(ErrorCode.PARAMS_ERROR);
+        }
+        if(!userService.isAdmin(request)&&userService.getloginuser(request)==null)
+        {
+            throw  new BuessisException(ErrorCode.NO_AUTH,"缺少管理员权限");
+        }
+        long    userid = userUpdatepswRequest.getId();
+        String  oldPassword = userUpdatepswRequest.getOldPassword();
+        String  newPassword = userUpdatepswRequest.getNewPassword();
+
+        return ResultUntil.success(userService.updatePassword(userid,oldPassword,newPassword));
+    }
+
      @PostMapping  ("/logout")
      public BaseResponse<Integer> userLogout(HttpServletRequest request)
      {if(request==null){

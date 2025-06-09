@@ -86,4 +86,5 @@ public interface UserService extends IService<User> {
    * @param userPassword
    */
   void  correctAccountAndPassword(String userAccount, String userPassword);
+ long updatePassword(long id, String oldPassword, String newPassword);
 }
