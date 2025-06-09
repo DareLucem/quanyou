@@ -18,14 +18,13 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static cn.edu.xaut.quanyou.Contant.UserContant.ADMIN_ROLE;
 import static cn.edu.xaut.quanyou.Contant.UserContant.USER_LOGIN_STATE;
 
 
@@ -54,17 +53,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword,planetCode)){
             throw new BuessisException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
-if(userAccount.length()<4){
-    throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户账号过短");
-        }
-        if(userPassword.length()<8||checkPassword.length()<8){
-            throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户密码过短");
-        }
-        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
-        Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
-        if (matcher.find()) {
-            throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户账号不合法");
-        }
+        this.correctAccountAndPassword(userAccount, userPassword);
         // 密码和校验密码相同
         if (!userPassword.equals(checkPassword)) {
             throw new BuessisException(ErrorCode.PARAMS_ERROR, "两次密码输入不一致");
@@ -110,17 +99,7 @@ if(userAccount.length()<4){
         if(StringUtils.isAnyBlank(userAccount,userPassword)){
             throw new BuessisException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
-        if(userAccount.length()<4){
-            throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户账号过短");
-        }
-        if(userPassword.length()<8){
-            throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户密码过短");
-        }
-        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
-        Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
-        if (matcher.find()) {
-            throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户账号不合法");
-        }
+        this.correctAccountAndPassword(userAccount, userPassword);
         QueryWrapper<User> Wrapper = new QueryWrapper<User>();
         Wrapper.eq("userAccount",userAccount);
         User user = userMapper.selectOne(Wrapper);
@@ -235,6 +214,92 @@ if(userAccount.length()<4){
             }
             return true;
         }).map(user -> getSafetyUser(user)).collect(Collectors.toList());
+    }
+
+    @Override
+    public int updateUser(User user,User loginUser) {
+      long updateuserid = user.getId();
+      if(updateuserid <= 0) {
+          throw new BuessisException(ErrorCode.PARAMS_ERROR);
+      }
+      if(loginUser.getUserRole()!= ADMIN_ROLE && updateuserid != loginUser.getId()) {
+          throw new BuessisException(ErrorCode.NO_AUTH, "没有权限");
+      }
+      User oldUser = this.getById(updateuserid);
+      if(oldUser == null) {
+          throw new BuessisException(ErrorCode.NULL_ERROR, "用户不存在");
+      }
+
+        return userMapper.updateById(user);
+
+
+    }
+    @Override
+    public boolean isAdmin(HttpServletRequest request)
+    {
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User currentUser = (User) userObj;
+        if(currentUser   == null || currentUser.getUserRole() != ADMIN_ROLE)
+            return false;
+        return true;
+    }
+
+    @Override
+    public User getloginuser(HttpServletRequest request) {
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User loginUser = (User) userObj;
+        if(loginUser==null){
+            throw  new BuessisException(ErrorCode.NOT_LOGIN);
+        }
+        return loginUser;
+    }
+    @Override
+    public void  correctAccountAndPassword(String userAccount, String userPassword){
+        if(StringUtils.isAnyBlank(userAccount,userPassword)){
+            throw new BuessisException(ErrorCode.PARAMS_ERROR, "参数为空");
+        }
+
+        if(userAccount.length()<4){
+            throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+        }
+        if(userPassword.length()<8){
+            throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+        }
+        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
+        Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
+        if (matcher.find()) {
+            throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户账号不合法");
+
+        }
+    }
+
+    @Override
+    public long updatePassword(long id, String oldPassword, String newPassword) {
+        if(StringUtils.isAnyBlank(oldPassword,newPassword)){
+            throw new BuessisException(ErrorCode.NULL_ERROR, "参数为空");
+        }
+
+        if(newPassword.length()<8){
+            throw new BuessisException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+        }
+        if(id<=0) {
+            throw new BuessisException(ErrorCode.PARAMS_ERROR, "参数错误");
+        }
+        User olduser=  this.getById(id);
+        if(olduser==null){
+            throw new BuessisException(ErrorCode.NULL_ERROR, "用户不存在");
+        }
+        if(olduser.getUserRole()!= ADMIN_ROLE && id != olduser.getId()) {
+            throw new BuessisException(ErrorCode.NO_AUTH, "没有权限");
+        }
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        if(encoder.matches(oldPassword,olduser.getUserPassword())==false){
+           throw new BuessisException(ErrorCode.PARAMS_ERROR, "旧密码错误");
+        }
+        String bcryptPassword = encoder.encode(newPassword);
+        olduser.setUserPassword(bcryptPassword);
+        userMapper.updateById(olduser);
+        return  olduser.getId();
     }
 }
 
