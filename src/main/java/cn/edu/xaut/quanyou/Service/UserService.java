@@ -1,6 +1,7 @@
 package cn.edu.xaut.quanyou.Service;
 
 import cn.edu.xaut.quanyou.Model.User;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import javax.servlet.http.HttpServletRequest;
@@ -87,4 +88,8 @@ public interface UserService extends IService<User> {
    */
   void  correctAccountAndPassword(String userAccount, String userPassword);
  long updatePassword(long id, String oldPassword, String newPassword);
+
+
+   Page<User> recommendUsers();
+
 }

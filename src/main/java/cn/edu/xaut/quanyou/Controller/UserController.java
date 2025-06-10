@@ -10,6 +10,7 @@ import cn.edu.xaut.quanyou.Untils.AliOSSUtils;
 import cn.edu.xaut.quanyou.common.BaseResponse;
 import cn.edu.xaut.quanyou.common.ErrorCode;
 import cn.edu.xaut.quanyou.common.ResultUntil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -111,6 +112,15 @@ public class UserController {
         User loginUser = userService.getloginuser(request);
         int result = userService.updateUser(user,loginUser);
             return ResultUntil.success(result);
+        }
+        @GetMapping("recommend")
+        public BaseResponse<Page<User>> recommendUsers(HttpServletRequest request)
+            {
+            if(userService.getloginuser(request)==null)
+            {
+                throw  new BuessisException(ErrorCode.NO_AUTH,"用户未登录");
+            }
+            return  ResultUntil.success(userService.recommendUsers());
         }
     @PostMapping  ("/delete")
     public BaseResponse<Boolean> delete(long id, HttpServletRequest request)

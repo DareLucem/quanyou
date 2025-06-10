@@ -14,8 +14,8 @@ server:
 
 aliyun:
   oss:
-    accessKeyId: #密钥
-    accessKeySecret: #密钥
+    accessKeyId: LTAI5t6tUecD2BRBDwhRTYHv
+    accessKeySecret: jjFGwohLDU8FJetB7ByyiwoQsTRLnu
     bucketName: springlearningcyt-web-ts
     endpoint: https://oss-cn-beijing.aliyuncs.com
 spring:
