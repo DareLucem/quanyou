@@ -10,6 +10,7 @@ import cn.edu.xaut.quanyou.Untils.AliOSSUtils;
 import cn.edu.xaut.quanyou.common.BaseResponse;
 import cn.edu.xaut.quanyou.common.ErrorCode;
 import cn.edu.xaut.quanyou.common.ResultUntil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -99,10 +100,11 @@ public class UserController {
         return ResultUntil.success(list);
     }
     @GetMapping("/search/tags")
-    public BaseResponse<List<User>> searchUserByTags(@RequestParam(required = false) List<String> tagNameList){
+    public BaseResponse<Page<User>> searchUserByTags(@RequestParam(required = false) List<String> tagNameList,@RequestParam(defaultValue = "1") int pageNum,
+                                                     @RequestParam(defaultValue = "10") int pageSize){
         if(CollectionUtils.isEmpty(tagNameList))
             throw new BuessisException(ErrorCode.PARAMS_ERROR);
-        return ResultUntil.success(userService.searchUsersByTags(tagNameList));
+        return ResultUntil.success(userService.searchUsersByTags(tagNameList,pageNum,pageSize));
     }
     @PostMapping("/update")
     public BaseResponse<Integer> updateUser(@RequestBody User user,HttpServletRequest request){
@@ -114,13 +116,14 @@ public class UserController {
             return ResultUntil.success(result);
         }
         @GetMapping("recommend")
-        public BaseResponse<Page<User>> recommendUsers(HttpServletRequest request)
+        public BaseResponse<IPage<User>> recommendUsers(@RequestParam(defaultValue = "8") Long  PageSize, @RequestParam(defaultValue = "1") Long PageNum, HttpServletRequest request)
             {
             if(userService.getloginuser(request)==null)
             {
                 throw  new BuessisException(ErrorCode.NO_AUTH,"用户未登录");
             }
-            return  ResultUntil.success(userService.recommendUsers());
+                User loginuser = userService.getloginuser(request);
+            return  ResultUntil.success(userService.recommendUsers(PageSize,PageNum,loginuser));
         }
     @PostMapping  ("/delete")
     public BaseResponse<Boolean> delete(long id, HttpServletRequest request)

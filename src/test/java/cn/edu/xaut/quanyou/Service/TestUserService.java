@@ -6,6 +6,9 @@ import com.baomidou.mybatisplus.core.toolkit.Assert;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisOperations;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 import javax.annotation.Resource;
 import javax.xml.ws.Service;
@@ -15,18 +18,15 @@ import java.util.List;
 @SpringBootTest
 public class TestUserService {
     @Autowired
-    UserService userService;
-//    @Test
-//    public void testuserRegister()
-//    {
-//         long  result=userService.userRegister("caiio","1234567890","1234567890","1");
-//        Assert.isTrue(result==-1,"注册失败");
-//    }
+    private RedisTemplate redisTemplate;
     @Test
-    public void testuserserachbytags()
-        {
-            List<User> result=userService.searchUsersByTags(Arrays.asList("java","python"));
-            Assert.isTrue(result.size()==1,"搜索成功");
-        }
+    void test(){
+        ValueOperations valueOperations=redisTemplate.opsForValue();
+
+        System.out.println(redisTemplate.delete("quanyou:user:recommend:_8"));;
+
+
+
+    }
 
 }

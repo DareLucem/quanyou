@@ -1,6 +1,7 @@
 package cn.edu.xaut.quanyou.Service;
 
 import cn.edu.xaut.quanyou.Model.User;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -59,7 +60,7 @@ public interface UserService extends IService<User> {
    * @param tagNameList
    * @return
    */
-  List<User> searchUsersByTags(List<String> tagNameList);
+  Page<User> searchUsersByTags(List<String> tagNameList,int pageNum,int pageSize);
 
   /**
    * 修改个人用户 信息
@@ -90,6 +91,6 @@ public interface UserService extends IService<User> {
  long updatePassword(long id, String oldPassword, String newPassword);
 
 
-   Page<User> recommendUsers();
+   IPage<User> recommendUsers(Long  PageSize, Long PageNum,User user);
 
 }

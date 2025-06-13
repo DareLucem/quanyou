@@ -6,6 +6,7 @@ import cn.edu.xaut.quanyou.Model.User;
 import cn.edu.xaut.quanyou.Service.UserService;
 import cn.edu.xaut.quanyou.common.ErrorCode;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -13,6 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -41,6 +45,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     implements UserService {
     @Resource
     private UserMapper userMapper;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
 
     /**
@@ -172,51 +178,53 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return 1;
     }
 
-//    /**
-//     * 用SQL进行模糊查询
-//     * @param tagNameList
-//     * @return
-//     */
-//    @Deprecated
-//   private   List<User> searchUsersByTags(List<String> tagNameList) {
-//        if (CollectionUtils.isEmpty(tagNameList)) {
-//            throw new BuessisException(ErrorCode.PARAMS_ERROR);
-//        }
-//        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-//        for (String tagName : tagNameList) {
-//            queryWrapper.like("tags", tagName);
-//        }
-//        List<User> results = userMapper.selectList(queryWrapper);
-//        return results.stream().map(this::getSafetyUser).collect(Collectors.toList());
-//    }
-
     /**
-     * 用内存进行查询
-     *
+     * 用SQL进行模糊查询
      * @param tagNameList
      * @return
      */
     @Override
-    public List<User> searchUsersByTags(List<String> tagNameList) {
+   public  Page<User> searchUsersByTags(List<String> tagNameList,int pageNum,int pageSize) {
         if (CollectionUtils.isEmpty(tagNameList)) {
             throw new BuessisException(ErrorCode.PARAMS_ERROR);
         }
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        List<User> userList = userMapper.selectList(queryWrapper);
-        Gson gson = new Gson();
-        return userList.parallelStream().filter(user -> {
-            String tags = user.getTags();
-            Set<String> tagSet = gson.fromJson(tags, new TypeToken<Set<String>>() {
-            }.getType());
-            tagSet = Optional.ofNullable(tagSet).orElse(new HashSet<>());
-            for (String tagName : tagNameList) {
-                if (!tagSet.contains(tagName)) {
-                    return false;
-                }
-            }
-            return true;
-        }).map(user -> getSafetyUser(user)).collect(Collectors.toList());
+        for (String tagName : tagNameList) {
+            queryWrapper.like("tags", tagName);
+        }
+        Page<User> page;
+        page = this.page(new Page<>( pageNum, pageSize),queryWrapper);
+
+        return page;
     }
+
+//    /**
+//     * 用内存进行查询
+//     *
+//     * @param tagNameList
+//     * @return
+//     */
+//    @Override
+//    public List<User> searchUsersByTags(List<String> tagNameList) {
+//        if (CollectionUtils.isEmpty(tagNameList)) {
+//            throw new BuessisException(ErrorCode.PARAMS_ERROR);
+//        }
+//        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+//        List<User> userList = userMapper.selectList(queryWrapper);
+//        Gson gson = new Gson();
+//        return userList.parallelStream().filter(user -> {
+//            String tags = user.getTags();
+//            Set<String> tagSet = gson.fromJson(tags, new TypeToken<Set<String>>() {
+//            }.getType());
+//            tagSet = Optional.ofNullable(tagSet).orElse(new HashSet<>());
+//            for (String tagName : tagNameList) {
+//                if (!tagSet.contains(tagName)) {
+//                    return false;
+//                }
+//            }
+//            return true;
+//        }).map(user -> getSafetyUser(user)).collect(Collectors.toList());
+//    }
 
     @Override
     public int updateUser(User user, User loginUser) {
@@ -311,9 +319,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public Page<User> recommendUsers() {
+    public IPage<User> recommendUsers(Long  PageSize, Long  PageNum,User loginuser) {
+        String redisKey= String.format("quanyou:user:recommend_%s", loginuser.getId());
+        ValueOperations<String,  Object>  valueOperations = redisTemplate.opsForValue();
+        IPage<User> page = null;
+        try {
+            page = (IPage<User>) valueOperations.get(redisKey);
+        } catch (Exception e) {
+            log.warn("Failed to get from Redis: {}", e.getMessage());
+        }
+        if (page != null) {
+            return page;
+        }
         QueryWrapper queryWrapper = new QueryWrapper();
-        Page<User> page = userMapper.selectPage(new Page<>(1, 5), queryWrapper);
+        page = this.page(new Page<>(PageNum,PageSize), queryWrapper);
+        try {
+            valueOperations.set(redisKey,page, 30000);
+        } catch (Exception e) {
+            log.info("redis set key error:" + e.getMessage());
+        }
         return page;
     }
 
