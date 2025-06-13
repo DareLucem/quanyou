@@ -116,7 +116,7 @@ public class UserController {
             return ResultUntil.success(result);
         }
         @GetMapping("recommend")
-        public BaseResponse<IPage<User>> recommendUsers(@RequestParam(defaultValue = "8") Long  PageSize, @RequestParam(defaultValue = "1") Long PageNum, HttpServletRequest request)
+        public BaseResponse<Page<User>> recommendUsers(@RequestParam(defaultValue = "8") Long  PageSize, @RequestParam(defaultValue = "1") Long PageNum, HttpServletRequest request)
             {
             if(userService.getloginuser(request)==null)
             {

@@ -17,16 +17,16 @@ import java.util.List;
 
 @SpringBootTest
 public class TestUserService {
-    @Autowired
-    private RedisTemplate redisTemplate;
-    @Test
-    void test(){
-        ValueOperations valueOperations=redisTemplate.opsForValue();
+//    @Autowired
+//    private RedisTemplate redisTemplate;
+//    @Test
+//    void test(){
+//        ValueOperations valueOperations=redisTemplate.opsForValue();
+//
+//        System.out.println(redisTemplate.delete("quanyou:user:recommend:_8"));;
 
-        System.out.println(redisTemplate.delete("quanyou:user:recommend:_8"));;
 
 
-
-    }
+//    }
 
 }

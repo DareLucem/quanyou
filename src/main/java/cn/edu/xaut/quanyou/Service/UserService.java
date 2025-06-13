@@ -91,6 +91,6 @@ public interface UserService extends IService<User> {
  long updatePassword(long id, String oldPassword, String newPassword);
 
 
-   IPage<User> recommendUsers(Long  PageSize, Long PageNum,User user);
+   Page<User> recommendUsers(Long  PageSize, Long PageNum,User user);
 
 }

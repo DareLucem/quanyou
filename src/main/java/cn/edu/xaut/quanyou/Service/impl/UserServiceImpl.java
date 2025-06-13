@@ -4,10 +4,12 @@ import cn.edu.xaut.quanyou.Exception.BuessisException;
 import cn.edu.xaut.quanyou.Mapper.UserMapper;
 import cn.edu.xaut.quanyou.Model.User;
 import cn.edu.xaut.quanyou.Service.UserService;
+import cn.edu.xaut.quanyou.Untils.RedisUtil;
 import cn.edu.xaut.quanyou.common.ErrorCode;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -46,7 +49,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Resource
     private UserMapper userMapper;
     @Autowired
-    private RedisTemplate redisTemplate;
+    private RedisUtil redisUtil;
 
 
     /**
@@ -244,11 +247,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 throw new BuessisException(ErrorCode.PARAMS_ERROR, "标签格式不正确");
             }
         }
+        String cacheKey = "quanyou:user:recommend_" + loginUser.getId();
 
-        return userMapper.updateById(user);
+        try {
+            // 1. 先更新数据库
+            int result = userMapper.updateById(user);
 
+            // 2. 删除缓存（带重试）
+            redisUtil.delete(cacheKey);
+
+            return result;
+        } catch (Exception e) {
+            log.error("用户更新失败", e);
+            throw new BuessisException(ErrorCode.SYSTEM_ERROR, "更新失败");
+        }
 
     }
+
+
 
     @Override
     public boolean isAdmin(HttpServletRequest request) {
@@ -319,22 +335,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public IPage<User> recommendUsers(Long  PageSize, Long  PageNum,User loginuser) {
+    public Page<User> recommendUsers(Long  PageSize, Long  PageNum,User loginuser) {
         String redisKey= String.format("quanyou:user:recommend_%s", loginuser.getId());
-        ValueOperations<String,  Object>  valueOperations = redisTemplate.opsForValue();
-        IPage<User> page = null;
-        try {
-            page = (IPage<User>) valueOperations.get(redisKey);
-        } catch (Exception e) {
-            log.warn("Failed to get from Redis: {}", e.getMessage());
-        }
+        TypeReference<Page<User>> typeRef = new TypeReference<Page<User>>() {};
+        Page<User> page = redisUtil.get(redisKey, typeRef);
+
         if (page != null) {
             return page;
         }
         QueryWrapper queryWrapper = new QueryWrapper();
         page = this.page(new Page<>(PageNum,PageSize), queryWrapper);
         try {
-            valueOperations.set(redisKey,page, 30000);
+            redisUtil.set(redisKey,page, 30000, TimeUnit.MINUTES);
         } catch (Exception e) {
             log.info("redis set key error:" + e.getMessage());
         }
