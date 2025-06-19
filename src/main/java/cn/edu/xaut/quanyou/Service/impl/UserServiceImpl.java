@@ -7,7 +7,6 @@ import cn.edu.xaut.quanyou.Service.UserService;
 import cn.edu.xaut.quanyou.Untils.RedisUtil;
 import cn.edu.xaut.quanyou.common.ErrorCode;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.gson.Gson;
@@ -17,8 +16,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -139,6 +136,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         QueryWrapper<User> Wrapper = new QueryWrapper<User>();
         if (userAccount != null) {
             Wrapper.like("userAccount", userAccount);
+        }
+        List<User> userlist = this.list(Wrapper);
+        return userlist.stream().map(user -> getSafetyUser(user)).collect(Collectors.toList());
+    }
+    @Override
+    public List<User> searchuserbyIDs(List<Long> id) {
+        QueryWrapper<User> Wrapper = new QueryWrapper<User>();
+        if (id != null) {
+            Wrapper.in("id", id);
         }
         List<User> userlist = this.list(Wrapper);
         return userlist.stream().map(user -> getSafetyUser(user)).collect(Collectors.toList());

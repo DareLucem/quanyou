@@ -41,6 +41,8 @@ public interface UserService extends IService<User> {
      */
   List<User> searchuser(String username);
 
+    List<User> searchuserbyIDs(List<Long> ids);
+
     /**
      *
      * @param OriginUser

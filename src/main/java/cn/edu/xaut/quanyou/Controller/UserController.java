@@ -99,6 +99,12 @@ public class UserController {
         List<User> list = userService.searchuser(userAccount);
         return ResultUntil.success(list);
     }
+    @GetMapping("/search/{ids}")
+    public BaseResponse<List<User>> searchUserIds(@RequestParam(required = false) List<Long> ids){
+        if(CollectionUtils.isEmpty(ids))
+            throw new BuessisException(ErrorCode.PARAMS_ERROR);
+        return ResultUntil.success(userService.searchuserbyIDs(ids));
+    }
     @GetMapping("/search/tags")
     public BaseResponse<Page<User>> searchUserByTags(@RequestParam(required = false) List<String> tagNameList,@RequestParam(defaultValue = "1") int pageNum,
                                                      @RequestParam(defaultValue = "10") int pageSize){
