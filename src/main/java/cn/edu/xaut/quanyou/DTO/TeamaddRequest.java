@@ -14,4 +14,5 @@ public class TeamaddRequest implements Serializable {
     private Long userId;
     private Integer status;
     private String password;
+    private String messages;
 }

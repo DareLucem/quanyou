@@ -10,6 +10,7 @@ import cn.edu.xaut.quanyou.Untils.AliOSSUtils;
 import cn.edu.xaut.quanyou.common.BaseResponse;
 import cn.edu.xaut.quanyou.common.ErrorCode;
 import cn.edu.xaut.quanyou.common.ResultUntil;
+import cn.edu.xaut.quanyou.vo.UserVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.Api;
@@ -191,5 +192,14 @@ public class UserController {
          int result = userService.userLogout(request);
          return ResultUntil.success(result);
      }
+    @GetMapping("/match")
+    public BaseResponse<List<User>> match(Long num, HttpServletRequest request) {
+        User loginUser = userService.getloginuser(request);
+        if (loginUser == null) {
+            throw new BuessisException(ErrorCode.NOT_LOGIN);
+        }
+        List<User> matchUsers = userService.match(num, loginUser);
+        return ResultUntil.success(matchUsers);
+    }
 
 }

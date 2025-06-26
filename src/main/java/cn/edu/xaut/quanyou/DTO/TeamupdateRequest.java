@@ -13,5 +13,6 @@ public class TeamupdateRequest implements Serializable {
     private Date expireTime;
     private Integer status;
     private String password;
+    private String messages;
 
 }

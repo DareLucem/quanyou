@@ -1,6 +1,7 @@
 package cn.edu.xaut.quanyou.Service;
 
 import cn.edu.xaut.quanyou.Model.User;
+import cn.edu.xaut.quanyou.vo.UserVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -77,6 +78,7 @@ public interface UserService extends IService<User> {
    * @return
    */
   boolean isAdmin(HttpServletRequest request);
+  boolean isAdmin(User loginuser);
   /**
    * 获取当前登录用户
    * @param request
@@ -95,4 +97,5 @@ public interface UserService extends IService<User> {
 
    Page<User> recommendUsers(Long  PageSize, Long PageNum,User user);
 
+  List<User> match(Long nunm, User loginUser);
 }

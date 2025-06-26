@@ -1,21 +1,20 @@
 package cn.edu.xaut.quanyou.Controller;
 
-import cn.edu.xaut.quanyou.DTO.TeamQuery;
-import cn.edu.xaut.quanyou.DTO.TeamaddRequest;
-import cn.edu.xaut.quanyou.DTO.TeamupdateRequest;
+import cn.edu.xaut.quanyou.DTO.*;
 import cn.edu.xaut.quanyou.Exception.BuessisException;
 import cn.edu.xaut.quanyou.Model.Team;
 import cn.edu.xaut.quanyou.Model.User;
 import cn.edu.xaut.quanyou.Service.TeamService;
 import cn.edu.xaut.quanyou.Service.UserService;
-import cn.edu.xaut.quanyou.Service.UserTeamService;
 import cn.edu.xaut.quanyou.Untils.AliOSSUtils;
 import cn.edu.xaut.quanyou.common.BaseResponse;
 import cn.edu.xaut.quanyou.common.ErrorCode;
 import cn.edu.xaut.quanyou.common.ResultUntil;
 import cn.edu.xaut.quanyou.vo.TeamUserVo;
+import cn.edu.xaut.quanyou.vo.UserVO;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ser.Serializers;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,22 +46,6 @@ public class TeamController {
         }
         return ResultUntil.success(TeamService.addTeam(teamaddRequest, loginUser));
     }
-    @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteTeam(long id, HttpServletRequest request){
-        if(!userService.isAdmin(request)&&userService.getloginuser(request)!=null)
-        {
-            throw new BuessisException(ErrorCode.NO_AUTH,"缺少管理员权限");
-        }
-        if (id <= 0){
-            throw new BuessisException(ErrorCode.PARAMS_ERROR);
-        }
-        Boolean result = TeamService.removeById(id);
-        if (!result)
-        {
-            throw new BuessisException(ErrorCode.SYSTEM_ERROR,"删除失败");
-        }
-        return ResultUntil.success(result);
-    }
     @PostMapping("/update")
     public BaseResponse<Boolean> updateTeam(@RequestBody TeamupdateRequest teamUpdateRequest, HttpServletRequest request) {
         if (teamUpdateRequest == null) {
@@ -87,7 +70,7 @@ public class TeamController {
         return ResultUntil.success(team);
     }
     @PostMapping("/list")
-    public BaseResponse<List<TeamUserVo>> listTeams(TeamQuery teamQuery, HttpServletRequest request) {
+    public BaseResponse<List<TeamUserVo>> listTeams(@RequestBody TeamQuery teamQuery, HttpServletRequest request) {
        boolean isAdmin = userService.isAdmin(request);
         List<TeamUserVo> teamList = TeamService.listTeams(teamQuery,isAdmin);
         return ResultUntil.success(teamList);
@@ -98,12 +81,77 @@ public class TeamController {
         {
             throw new BuessisException(ErrorCode.PARAMS_ERROR);
         }
+        if(userService.getloginuser( request)==null){
+            throw new BuessisException(ErrorCode.NO_AUTH);
+        }
         Team team = new Team();
         BeanUtils.copyProperties(teamQuery, team);
         QueryWrapper<Team> queryWrapper = new QueryWrapper<>(team);
         Page<Team> page = TeamService.page(new Page<Team>(teamQuery.getPageNum(), teamQuery.getPageSize()), queryWrapper);
         return ResultUntil.success(page);
     }
+    @PostMapping("/join")
+    public BaseResponse<Boolean> joinTeam(@RequestBody TeamJoinRequest teamJoinRequest, HttpServletRequest request) {
+    if(teamJoinRequest== null){
+        throw new BuessisException(ErrorCode.PARAMS_ERROR);
+    }
+    User loginUser = userService.getloginuser(request);
+    return ResultUntil.success(TeamService.joinTeam(teamJoinRequest, loginUser));
+}
+@PostMapping("/info")
+    public BaseResponse<TeamUserVo> updateTeam(@RequestBody TeamQuery teamQuery, HttpServletRequest request) {
+    if(teamQuery== null){
+        throw new BuessisException(ErrorCode.PARAMS_ERROR);
+    }
+    User loginUser = userService.getloginuser(request);
+    return ResultUntil.success(TeamService.infoteam(teamQuery, loginUser));
+}
+@PostMapping("/quit")
+    public BaseResponse<Boolean> quitTeam(@RequestBody TeamQuitRequest teamQuitRequest, HttpServletRequest request)
+{
+    if(teamQuitRequest== null){
+        throw new BuessisException(ErrorCode.PARAMS_ERROR);
+    }
+    User loginUser = userService.getloginuser(request);
+    return ResultUntil.success(TeamService.quitTeam(teamQuitRequest, loginUser));
+
+}
+@PostMapping("/delete")
+    public BaseResponse<Boolean> deleteTeam(@RequestBody TeamDeleteRequest teamDeleteRequest, HttpServletRequest request){
+    User loginuser = userService.getloginuser(request);
+    if(!userService.isAdmin(request)&&loginuser==null)
+        {
+            throw new BuessisException(ErrorCode.NO_AUTH,"缺少管理员权限");
+        }
+   Boolean result = TeamService.removeteam(teamDeleteRequest.getId(),loginuser);
+
+        if(!result)
+        {
+            throw new BuessisException(ErrorCode.SYSTEM_ERROR,"删除失败");
+        }
+        return ResultUntil.success(result);
+};
+    @PostMapping("/list/my/join")
+    public BaseResponse<List<TeamUserVo>> listMyJoinTeams(HttpServletRequest request) {
+        User loginUser = userService.getloginuser(request);
+        if (loginUser == null) {
+            throw new BuessisException(ErrorCode.NOT_LOGIN);
+        }
+        List<TeamUserVo> teamList = TeamService.listMyJoinTeams(loginUser.getId());
+        return ResultUntil.success(teamList);
+    }
+    @GetMapping("/getmessages")
+    public BaseResponse<String> getMessages(Long teamId,HttpServletRequest request) {
+        User loginUser = userService.getloginuser(request);
+        if (loginUser == null) {
+            throw new BuessisException(ErrorCode.NOT_LOGIN);
+        }
+        String messages = TeamService.getmessage(teamId,loginUser);
+        return ResultUntil.success(messages);
+    }
+
+
+
 
 
 }
